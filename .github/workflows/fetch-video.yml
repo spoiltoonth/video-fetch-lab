@@ -9,14 +9,16 @@ jobs:
     steps:
       - name: Install tools
         run: |
-          pipx install yt-dlp
+          python -m pip install -U "yt-dlp[default]" bgutil-ytdlp-pot-provider
           curl -fsSL https://deno.land/install.sh | sh
+          docker run -d --name bgutil-provider --init -p 127.0.0.1:4416:4416 brainicism/bgutil-ytdlp-pot-provider
+          for i in $(seq 1 30); do curl -s http://127.0.0.1:4416/ping && break || sleep 2; done
       - name: Download video
         run: |
           export PATH="$HOME/.deno/bin:$PATH"
-          yt-dlp --remote-components ejs:github -f "bv*[height<=720]+ba/b[height<=720]/b" --merge-output-format mp4 -o source.mp4 "https://www.youtube.com/watch?v=FI4XhThSkWo"
+          python -m yt_dlp -v --js-runtimes deno --remote-components ejs:github --extractor-args "youtube:player_client=mweb" -f "bv*[height<=720]+ba/b[height<=720]/b" --merge-output-format mp4 -o source.mp4 "https://www.youtube.com/watch?v=FI4XhThSkWo"
           ls -la source.mp4
       - name: Publish as release asset
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "fetch-FI4XhThSkWo" source.mp4 --repo "$GITHUB_REPOSITORY" --title "fetch FI4XhThSkWo" --notes "yt-dlp via GitHub Actions"
+        run: gh release create "fetch-FI4XhThSkWo" source.mp4 --repo "$GITHUB_REPOSITORY" --title "fetch FI4XhThSkWo" --notes "yt-dlp via GitHub Actions with BgUtils POT"
